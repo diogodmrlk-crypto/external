@@ -1,38 +1,23 @@
-
-name: Build Theos
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-      - html-to-ts-generator
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Baixar repositório
-        uses: actions/checkout@v4
-
-      - name: Compilar com Theos
-        uses: Randomblock1/theos-action@v1
-        with:
-          package: true
-
-      - name: Localizar artefatos
+      - name: Diagnosticar e localizar artefatos
+        shell: bash
         run: |
-          mkdir -p dist
-          find packages -type f \( -name "*.deb" -o -name "*.dylib" -o -name "*.ipa" \) -exec cp {} dist/ \; 2>/dev/null || true
-          find . -maxdepth 3 -type f \( -name "*.deb" -o -name "*.dylib" -o -name "*.ipa" \) -not -path "./dist/*" -exec cp {} dist/ \;
+          echo "Arquivos gerados pelo Theos:"
+          find . -type f \( \
+            -name "*.ipa" -o \
+            -name "*.deb" -o \
+            -name "*.dylib" \
+          \) -not -path "./.git/*" -print
 
-      - name: Publicar arquivos compilados
-        uses: actions/upload-artifact@v4
-        with:
-          name: Theos-build
-          path: dist/*
-          if-no-files-found: error
+          mkdir -p dist
+
+          find . -type f \( \
+            -name "*.ipa" -o \
+            -name "*.deb" -o \
+            -name "*.dylib" \
+          \) \
+            -not -path "./.git/*" \
+            -not -path "./dist/*" \
+            -exec cp -v {} dist/ \;
+
+          echo "Conteúdo de dist:"
+          ls -lah dist
