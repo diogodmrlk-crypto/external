@@ -1,0 +1,40 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Theos & SDKs
+        run: |
+          export THEOS=${{ github.workspace }}/theos
+          git clone --recursive https://github.com/theos/theos.git $THEOS
+          curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
+          unzip sdks.zip
+          mv sdks-master $THEOS/sdks
+          rm sdks.zip
+
+      - name: Build IPA
+        run: |
+          export THEOS=${{ github.workspace }}/theos
+          export PATH="$THEOS/bin:$PATH"
+          make clean package FINALPACKAGE=1 PACKAGE_FORMAT=ipa
+
+      - name: Prepare Artifact
+        run: |
+          mkdir -p output
+          find . -name "*.ipa" -exec mv {} output/Polonium.ipa \;
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Polonium-IPA
+          path: output/Polonium.ipa
