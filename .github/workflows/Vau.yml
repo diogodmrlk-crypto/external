@@ -1,32 +1,38 @@
-name: Build IPA with Theos
+
+name: Build Theos
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - html-to-ts-generator
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout
+      - name: Baixar repositório
         uses: actions/checkout@v4
 
-      - name: Install Theos
+      - name: Compilar com Theos
         uses: Randomblock1/theos-action@v1
         with:
-          theos-dir: 'theos'
-          theos-sdks: 'https://github.com/theos/sdks'
+          package: true
 
-      - name: Build Package
+      - name: Localizar artefatos
         run: |
-          export THEOS=${{ github.workspace }}/theos
-          export PATH="$THEOS/bin:$PATH"
-          make clean package FINALPACKAGE=1 PACKAGE_FORMAT=ipa
+          mkdir -p dist
+          find packages -type f \( -name "*.deb" -o -name "*.dylib" -o -name "*.ipa" \) -exec cp {} dist/ \; 2>/dev/null || true
+          find . -maxdepth 3 -type f \( -name "*.deb" -o -name "*.dylib" -o -name "*.ipa" \) -not -path "./dist/*" -exec cp {} dist/ \;
 
-      - name: Upload IPA
+      - name: Publicar arquivos compilados
         uses: actions/upload-artifact@v4
         with:
-          name: Polonium-IPA
-          path: packages/*.ipa
+          name: Theos-build
+          path: dist/*
+          if-no-files-found: error
