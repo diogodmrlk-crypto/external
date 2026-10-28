@@ -1,23 +1,58 @@
-      - name: Diagnosticar e localizar artefatos
-        shell: bash
-        run: |
-          echo "Arquivos gerados pelo Theos:"
-          find . -type f \( \
-            -name "*.ipa" -o \
-            -name "*.deb" -o \
-            -name "*.dylib" \
-          \) -not -path "./.git/*" -print
+name: Build Polonium
 
-          mkdir -p dist
+on:
+workflow_dispatch:
+push:
+branches:
+- main
+- html-to-ts-generator
 
-          find . -type f \( \
-            -name "*.ipa" -o \
-            -name "*.deb" -o \
-            -name "*.dylib" \
-          \) \
-            -not -path "./.git/*" \
-            -not -path "./dist/*" \
-            -exec cp -v {} dist/ \;
+permissions:
+contents: read
 
-          echo "Conteúdo de dist:"
-          ls -lah dist
+jobs:
+build:
+runs-on: ubuntu-22.04
+
+steps:
+  - name: Baixar repositório
+    uses: actions/checkout@v4
+  - name: Compilar com Theos
+    uses: Randomblock1/theos-action@v1
+  - name: Diagnosticar arquivos gerados
+    if: always()
+    shell: bash
+    run: |
+      echo "Diretório atual:"
+      pwd
+      echo "Arquivos gerados:"
+      find . -type f \( \
+        -name "*.ipa" -o \
+        -name "*.deb" -o \
+        -name "*.dylib" -o \
+        -name "*.app" \
+      \) -not -path "./.git/*" -print
+  - name: Preparar artefatos
+    if: success()
+    shell: bash
+    run: |
+      mkdir -p dist
+      find . -type f \( \
+        -name "*.ipa" -o \
+        -name "*.deb" -o \
+        -name "*.dylib" \
+      \) \
+        -not -path "./.git/*" \
+        -not -path "./dist/*" \
+        -exec cp -v {} dist/ \;
+      if [ -z "$(ls -A dist)" ]; then
+        echo "Nenhum artefato foi gerado."
+        exit 1
+      fi
+  - name: Enviar artefatos
+    if: success()
+    uses: actions/upload-artifact@v4
+    with:
+      name: Polonium-build
+      path: dist/
+      if-no-files-found: error
