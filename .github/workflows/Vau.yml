@@ -1,41 +1,56 @@
 name: Build Polonium
 
 on:
-workflow_dispatch:
-push:
-branches:
-- main
-- html-to-ts-generator
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - html-to-ts-generator
 
 permissions:
-contents: read
+  contents: read
 
 jobs:
-build:
-runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-22.04
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-  - name: Install Theos
-    uses: Randomblock1/theos-action@v1
-  - name: Compile project
-    shell: bash
-    run: |
-      set -eux
-      echo "Branch: $GITHUB_REF"
-      echo "Files in repository:"
-      ls -la
-      test -f makefile || test -f Makefile
-      make clean package
-  - name: Find build output
-    if: always()
-    run: |
-      find . -type f \( -name "*.ipa" -o -name "*.deb" -o -name "*.dylib" \) -not -path "./.git/*" -print
-  - name: Upload artifacts
-    if: success()
-    uses: actions/upload-artifact@v4
-    with:
-      name: Polonium-build
-      path: packages/*
-      if-no-files-found: error
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Theos
+        uses: Randomblock1/theos-action@v1
+
+      - name: Compile project
+        shell: bash
+        run: |
+          set -eux
+          echo "Branch: $GITHUB_REF"
+          ls -la
+          if [ -f makefile ]; then
+            makefile=makefile
+          elif [ -f Makefile ]; then
+            makefile=Makefile
+          else
+            echo "ERRO: makefile não encontrado na raiz"
+            exit 1
+          fi
+          make clean package
+
+      - name: Show generated files
+        if: always()
+        shell: bash
+        run: |
+          find . -type f \( \
+            -name "*.ipa" -o \
+            -name "*.deb" -o \
+            -name "*.dylib" \
+          \) -not -path "./.git/*" -print
+
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Polonium-build
+          path: packages/
+          if-no-files-found: error
