@@ -1,5 +1,5 @@
 ARCHS := arm64
-TARGET := iphone:clang:latest:14.0
+TARGET := iphone:clang:latest:15.0
 
 include $(THEOS)/makefiles/common.mk
 
@@ -16,10 +16,10 @@ Polonium_FILES = main.m \
 
 Polonium_FRAMEWORKS = UIKit Foundation Security
 Polonium_PRIVATE_FRAMEWORKS = IOKit
-Polonium_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+Polonium_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-everything
 
 include $(THEOS_MAKE_PATH)/application.mk
 
 before-package::
-	@echo "Removendo _CodeSignature para permitir re-assinatura posterior..."
+	@echo "Limpando assinatura antiga..."
 	@rm -rf $(THEOS_STAGING_DIR)/Applications/Polonium.app/_CodeSignature
