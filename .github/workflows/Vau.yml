@@ -15,44 +15,27 @@ build:
 runs-on: ubuntu-22.04
 
 steps:
-  - name: Baixar repositório
+  - name: Checkout
     uses: actions/checkout@v4
-  - name: Compilar com Theos
+  - name: Install Theos
     uses: Randomblock1/theos-action@v1
-  - name: Diagnosticar arquivos gerados
+  - name: Compile project
+    shell: bash
+    run: |
+      set -eux
+      echo "Branch: $GITHUB_REF"
+      echo "Files in repository:"
+      ls -la
+      test -f makefile || test -f Makefile
+      make clean package
+  - name: Find build output
     if: always()
-    shell: bash
     run: |
-      echo "Diretório atual:"
-      pwd
-      echo "Arquivos gerados:"
-      find . -type f \( \
-        -name "*.ipa" -o \
-        -name "*.deb" -o \
-        -name "*.dylib" -o \
-        -name "*.app" \
-      \) -not -path "./.git/*" -print
-  - name: Preparar artefatos
-    if: success()
-    shell: bash
-    run: |
-      mkdir -p dist
-      find . -type f \( \
-        -name "*.ipa" -o \
-        -name "*.deb" -o \
-        -name "*.dylib" \
-      \) \
-        -not -path "./.git/*" \
-        -not -path "./dist/*" \
-        -exec cp -v {} dist/ \;
-      if [ -z "$(ls -A dist)" ]; then
-        echo "Nenhum artefato foi gerado."
-        exit 1
-      fi
-  - name: Enviar artefatos
+      find . -type f \( -name "*.ipa" -o -name "*.deb" -o -name "*.dylib" \) -not -path "./.git/*" -print
+  - name: Upload artifacts
     if: success()
     uses: actions/upload-artifact@v4
     with:
       name: Polonium-build
-      path: dist/
+      path: packages/*
       if-no-files-found: error
